@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixelVault v2.0</title>
+    <title>PixelVault v3.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #2c2c2c;
+            --bg-color: #202020;
             --term-green: #4af626;
             --term-text: #e0e0e0;
-            --highlight: #f0f0f0;
-            --shadow: #111;
+            --highlight: #ffffff;
+            --shadow: #000000;
             --danger: #ff4444;
             --gold: #ffd700;
+            --terminal-bg: #111;
         }
 
         body {
@@ -22,22 +23,23 @@
             font-family: 'Press Start 2P', cursive;
             margin: 20px;
             font-size: 12px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        h1, h2, h3 { color: var(--term-green); text-shadow: 2px 2px #000; margin-top: 0;}
+        h1, h2, h3 { color: var(--term-green); margin-top: 0; text-transform: uppercase; }
         
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 850px; margin: 0 auto; }
 
-        /* --- UI COMPONENTS --- */
+        /* --- UI BOXES --- */
         .pixel-box {
-            background: #444;
+            background: #383838;
             border: 4px solid var(--highlight);
-            box-shadow: 6px 6px 0px var(--shadow);
+            box-shadow: 8px 8px 0px var(--shadow);
             padding: 20px;
             margin-bottom: 30px;
         }
 
+        /* --- INPUTS --- */
         .pixel-input {
             background: #222;
             border: 2px solid var(--term-green);
@@ -48,46 +50,468 @@
             width: 100%;
             box-sizing: border-box;
         }
+        
+        .row { display: flex; gap: 15px; margin-bottom: 10px; }
+        .col { flex: 1; }
 
+        /* --- BUTTONS --- */
         .pixel-btn {
             background: var(--term-green);
             color: black;
             border: 2px solid white;
-            padding: 10px 15px;
+            padding: 12px 15px;
             font-family: 'Press Start 2P', cursive;
             cursor: pointer;
             box-shadow: 4px 4px 0px #000;
-            margin-top: 10px;
             text-transform: uppercase;
             font-size: 10px;
+            display: inline-block;
         }
         
-        .pixel-btn.secondary { background: #666; color: white; }
+        .pixel-btn:hover { background: #6bff45; }
         .pixel-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+        .pixel-btn.secondary { background: #666; color: white; }
+        .pixel-btn.danger { background: var(--danger); color: white; }
 
         /* --- STATS BAR --- */
         .stats-bar {
             background: #000;
             border: 2px solid var(--gold);
-            padding: 10px;
-            margin-bottom: 20px;
+            padding: 15px;
+            margin-bottom: 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 4px 4px 0px #000;
         }
         .xp-container { flex-grow: 1; margin-left: 20px; background: #222; height: 20px; border: 1px solid white; position: relative;}
         .xp-fill { background: var(--gold); height: 100%; width: 0%; transition: width 0.3s; }
-        .xp-text { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 10px; color: black; }
+        .xp-text { position: absolute; width: 100%; text-align: center; top: 3px; font-size: 10px; color: black; z-index: 2; }
 
-        /* --- ACCOUNTS & LISTS --- */
+        /* --- LISTS --- */
         .account-card {
-            background: #333;
+            background: #2a2a2a;
             border: 2px dashed var(--term-green);
-            padding: 10px;
-            margin-top: 10px;
+            padding: 15px;
+            margin-top: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
+        /* --- SYSTEM LOG TERMINAL --- */
+        .system-terminal {
+            background: var(--terminal-bg);
+            border: 2px solid #555;
+            height: 150px;
+            overflow-y: scroll;
+            padding: 10px;
+            font-family: monospace; /* Monospace for terminal look */
+            font-size: 12px;
+            color: #aaa;
+            border-top: 4px solid var(--term-green);
+        }
+        .sys-entry { margin-bottom: 4px; border-bottom: 1px solid #222; }
+        .sys-time { color: var(--term-green); margin-right: 10px; }
         
-        .log-entry { font-size: 10px; border-bottom: 1px dashed #555; padding: 5px 0
+        .hidden-input { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="text-align: center; margin-bottom: 30px;">PIXEL VAULT v3.0</h1>
+
+    <div class="stats-bar">
+        <div>LVL <span id="displayLevel" style="color:var(--gold)">1</span></div>
+        <div class="xp-container">
+            <div class="xp-fill" id="xpFill"></div>
+            <div class="xp-text"><span id="displayXp">0</span> / <span id="displayNextXp">100</span> XP</div>
+        </div>
+    </div>
+
+    <div class="pixel-box" style="border-color: #666;">
+        <h3>> Memory Card (System)</h3>
+        <div style="display: flex; gap: 10px;">
+            <button class="pixel-btn secondary" onclick="exportData()">Export Save File</button>
+            <button class="pixel-btn secondary" onclick="document.getElementById('importFile').click()">Import Save File</button>
+            <button class="pixel-btn danger" onclick="hardReset()">Factory Reset</button>
+        </div>
+        <input type="file" id="importFile" class="hidden-input" onchange="importData(this)">
+    </div>
+
+    <div class="pixel-box">
+        <h2>> New Account</h2>
+        <div class="row">
+            <div class="col"><input type="text" id="accName" class="pixel-input" placeholder="Account Name"></div>
+            <div class="col">
+                <select id="accType" class="pixel-input">
+                    <option value="Checking">Checking</option>
+                    <option value="Savings">Savings</option>
+                    <option value="Investment">Investment</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col"><input type="number" id="accBalance" class="pixel-input" placeholder="Initial Balance ($)"></div>
+            <div class="col"><input type="number" id="accAPY" class="pixel-input" placeholder="APY % (e.g. 4.5)"></div>
+        </div>
+        <button class="pixel-btn" onclick="addAccount()">Create Account</button>
+    </div>
+
+    <div class="pixel-box">
+        <h2>> Accounts Dashboard</h2>
+        <div id="accountList">
+            <p>No accounts detected...</p>
+        </div>
+    </div>
+
+    <div class="pixel-box">
+        <h2>> Future Sight</h2>
+        <p>Compound Interest + Recurring Deposits</p>
+        
+        <div class="row">
+            <div class="col">
+                <label>Select Account:</label>
+                <select id="projectionAccount" class="pixel-input"></select>
+            </div>
+            <div class="col">
+                <label>Years to Grow:</label>
+                <input type="number" id="yearsToGrow" class="pixel-input" placeholder="e.g. 10">
+            </div>
+        </div>
+        <div class="row">
+             <div class="col">
+                <label>Monthly Deposit ($):</label>
+                <input type="number" id="monthlyContrib" class="pixel-input" placeholder="e.g. 200" value="0">
+             </div>
+             <div class="col" style="display:flex; align-items:flex-end;">
+                 <button class="pixel-btn" onclick="calculateGrowth()" style="width:100%">Run Simulation</button>
+             </div>
+        </div>
+        
+        <div id="projectionOutput" style="margin-top: 15px; padding: 10px; background:#222; border:1px solid #555; display: none;"></div>
+    </div>
+
+    <div class="pixel-box">
+        <h2>> Logs</h2>
+        
+        <h3>Captain's Log (Manual)</h3>
+        <div class="row">
+            <input type="text" id="journalEntry" class="pixel-input" placeholder="Write a note...">
+            <button class="pixel-btn" onclick="addManualLog()">Save</button>
+        </div>
+        <div id="journalDisplay" style="margin-bottom: 20px; max-height: 100px; overflow-y: auto; font-size: 10px;"></div>
+
+        <h3>System Log (Automated)</h3>
+        <div id="systemTerminal" class="system-terminal"></div>
+    </div>
+</div>
+
+<script>
+    // --- DEFAULT STATE ---
+    const defaultState = {
+        accounts: [],
+        manualLogs: [],
+        systemLogs: [],
+        stats: { level: 1, xp: 0, xpToNext: 100 }
+    };
+
+    let appData = JSON.parse(JSON.stringify(defaultState));
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+        loadFromBrowser();
+        renderAll();
+    });
+
+    // --- DATA PERSISTENCE ---
+    function saveToBrowser() {
+        localStorage.setItem('pixelVaultSave_v3', JSON.stringify(appData));
+    }
+
+    function loadFromBrowser() {
+        const saved = localStorage.getItem('pixelVaultSave_v3');
+        if (saved) {
+            try {
+                appData = JSON.parse(saved);
+                // Ensure new fields exist if loading from old version
+                if(!appData.systemLogs) appData.systemLogs = [];
+            } catch(e) {
+                console.error("Save file corrupted, loading default.");
+            }
+        }
+    }
+
+    function logSystemAction(action) {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = { time: timestamp, action: action };
+        appData.systemLogs.unshift(entry); // Add to top
+        
+        // Limit log size to prevent lag (keep last 100 actions)
+        if (appData.systemLogs.length > 100) appData.systemLogs.pop();
+        
+        saveToBrowser();
+        renderSystemLog();
+    }
+
+    // --- RENDERING ---
+    function renderAll() {
+        renderAccounts();
+        renderStats();
+        renderManualLogs();
+        renderSystemLog();
+        updateProjectionDropdown();
+    }
+
+    function renderSystemLog() {
+        const term = document.getElementById('systemTerminal');
+        term.innerHTML = '';
+        appData.systemLogs.forEach(log => {
+            const div = document.createElement('div');
+            div.className = 'sys-entry';
+            div.innerHTML = `<span class="sys-time">[${log.time}]</span> ${log.action}`;
+            term.appendChild(div);
+        });
+    }
+
+    // --- ACCOUNT LOGIC ---
+    function addAccount() {
+        const name = document.getElementById('accName').value;
+        const type = document.getElementById('accType').value;
+        const balStr = document.getElementById('accBalance').value;
+        const apyStr = document.getElementById('accAPY').value;
+
+        if (!name || balStr === '') {
+            alert("Error: Account Name and Balance are required.");
+            return;
+        }
+
+        const newAcc = {
+            id: Date.now(),
+            name: name,
+            type: type,
+            balance: parseFloat(balStr),
+            apy: parseFloat(apyStr) || 0
+        };
+
+        appData.accounts.push(newAcc);
+        logSystemAction(`CREATED ACCOUNT: ${name} ($${newAcc.balance})`);
+        gainXP(20);
+        
+        saveToBrowser();
+        renderAll();
+
+        // Reset Inputs
+        document.getElementById('accName').value = '';
+        document.getElementById('accBalance').value = '';
+        document.getElementById('accAPY').value = '';
+    }
+
+    function renderAccounts() {
+        const list = document.getElementById('accountList');
+        list.innerHTML = '';
+        
+        if (appData.accounts.length === 0) {
+            list.innerHTML = "<p>No accounts found.</p>";
+            return;
+        }
+
+        appData.accounts.forEach(acc => {
+            const div = document.createElement('div');
+            div.className = 'account-card';
+            div.innerHTML = `
+                <div>
+                    <div style="font-size:14px; color:white;">${acc.name}</div>
+                    <div style="font-size:10px; color:#aaa;">${acc.type} | APY: ${acc.apy}%</div>
+                    <div style="font-size:16px; color:var(--term-green); margin-top:5px;">$${acc.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                </div>
+                <button class="pixel-btn" style="padding: 8px;" onclick="updateBalance(${acc.id})">EDIT</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function updateBalance(id) {
+        const acc = appData.accounts.find(a => a.id === id);
+        if (!acc) return;
+
+        const newBalStr = prompt(`Update balance for ${acc.name}\nCurrent: $${acc.balance}`, acc.balance);
+        if (newBalStr === null) return; // Cancelled
+
+        const newBal = parseFloat(newBalStr);
+        if (isNaN(newBal)) {
+            alert("Invalid Number");
+            return;
+        }
+
+        const diff = newBal - acc.balance;
+        acc.balance = newBal;
+
+        if (diff > 0) {
+            const xpGain = Math.max(10, Math.floor(diff / 10));
+            gainXP(xpGain);
+            logSystemAction(`DEPOSIT: $${diff.toFixed(2)} into ${acc.name}`);
+        } else if (diff < 0) {
+            logSystemAction(`WITHDRAWAL: $${Math.abs(diff).toFixed(2)} from ${acc.name}`);
+        } else {
+            logSystemAction(`BALANCE CONFIRMED: ${acc.name}`);
+        }
+
+        saveToBrowser();
+        renderAll();
+    }
+
+    // --- FUTURE SIGHT (CALCULATOR) ---
+    function updateProjectionDropdown() {
+        const select = document.getElementById('projectionAccount');
+        select.innerHTML = '';
+        appData.accounts.forEach(acc => {
+            const opt = document.createElement('option');
+            opt.value = acc.id;
+            opt.text = `${acc.name} (${acc.apy}%)`;
+            select.appendChild(opt);
+        });
+    }
+
+    function calculateGrowth() {
+        const accId = document.getElementById('projectionAccount').value;
+        const years = parseFloat(document.getElementById('yearsToGrow').value);
+        const monthly = parseFloat(document.getElementById('monthlyContrib').value) || 0;
+        
+        if (!accId || isNaN(years)) {
+            alert("Please select an account and enter years.");
+            return;
+        }
+
+        const acc = appData.accounts.find(a => a.id == accId);
+        const P = acc.balance; // Principal
+        const r = acc.apy / 100; // Rate
+        const n = 12; // Compounds per year
+        const t = years; 
+
+        // Compound Interest Formula for Principal
+        const futurePrincipal = P * Math.pow((1 + r/n), (n * t));
+        
+        // Future Value of a Series (Monthly Contributions)
+        // Formula: PMT * [ (1 + r/n)^(nt) - 1 ] / (r/n)
+        let futureContributions = 0;
+        if (monthly > 0 && r > 0) {
+            futureContributions = monthly * (Math.pow((1 + r/n), (n*t)) - 1) / (r/n);
+        } else if (monthly > 0 && r === 0) {
+            futureContributions = monthly * n * t;
+        }
+
+        const totalValue = futurePrincipal + futureContributions;
+        const totalContributed = P + (monthly * 12 * t);
+        const totalInterest = totalValue - totalContributed;
+
+        const output = document.getElementById('projectionOutput');
+        output.style.display = 'block';
+        output.innerHTML = `
+            <div style="color:white; margin-bottom:5px;">> SIMULATION REPORT</div>
+            <div>Start Balance: $${P.toLocaleString()}</div>
+            <div>Monthly Add: $${monthly.toLocaleString()}</div>
+            <hr style="border-color:#444">
+            <div style="color:var(--term-green);">FUTURE TOTAL: $${totalValue.toLocaleString('en-US', {maximumFractionDigits:2})}</div>
+            <div style="color:var(--gold);">TOTAL INTEREST: +$${totalInterest.toLocaleString('en-US', {maximumFractionDigits:2})}</div>
+        `;
+        
+        logSystemAction(`RAN SIMULATION: ${acc.name} for ${years} years`);
+    }
+
+    // --- MANUAL JOURNAL ---
+    function addManualLog() {
+        const input = document.getElementById('journalEntry');
+        const text = input.value;
+        if (!text) return;
+
+        appData.manualLogs.unshift({
+            date: new Date().toLocaleString(),
+            text: text
+        });
+
+        logSystemAction(`JOURNAL ENTRY ADDED`);
+        input.value = '';
+        saveToBrowser();
+        renderManualLogs();
+    }
+
+    function renderManualLogs() {
+        const div = document.getElementById('journalDisplay');
+        div.innerHTML = '';
+        appData.manualLogs.forEach(log => {
+            const p = document.createElement('div');
+            p.style.borderBottom = "1px dashed #444";
+            p.style.padding = "5px 0";
+            p.innerHTML = `<span style="color:#888">[${log.date}]</span> ${log.text}`;
+            div.appendChild(p);
+        });
+    }
+
+    // --- IMPORT / EXPORT ---
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "pixelvault_backup_" + Date.now() + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        logSystemAction("DATA EXPORTED TO DISK");
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const loaded = JSON.parse(e.target.result);
+                if (loaded.accounts && loaded.stats) {
+                    appData = loaded;
+                    saveToBrowser();
+                    renderAll();
+                    logSystemAction("DATA IMPORTED SUCCESSFULLY");
+                    alert("System Restored.");
+                } else {
+                    alert("Invalid Save File");
+                }
+            } catch (err) {
+                alert("Error Reading File");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function hardReset() {
+        if (confirm("WARNING: This will delete all local data. Continue?")) {
+            localStorage.removeItem('pixelVaultSave_v3');
+            location.reload();
+        }
+    }
+
+    // --- GAMIFICATION ---
+    function gainXP(amount) {
+        appData.stats.xp += amount;
+        if (appData.stats.xp >= appData.stats.xpToNext) {
+            appData.stats.xp -= appData.stats.xpToNext;
+            appData.stats.level++;
+            appData.stats.xpToNext = Math.floor(appData.stats.xpToNext * 1.5);
+            logSystemAction(`LEVEL UP! REACHED LEVEL ${appData.stats.level}`);
+            alert(`LEVEL UP! You are now Level ${appData.stats.level}`);
+        }
+        renderStats();
+    }
+
+    function renderStats() {
+        document.getElementById('displayLevel').innerText = appData.stats.level;
+        document.getElementById('displayXp').innerText = Math.floor(appData.stats.xp);
+        document.getElementById('displayNextXp').innerText = appData.stats.xpToNext;
+        const pct = Math.min(100, (appData.stats.xp / appData.stats.xpToNext) * 100);
+        document.getElementById('xpFill').style.width = pct + "%";
+    }
+
+</script>
+</body>
+</html>
